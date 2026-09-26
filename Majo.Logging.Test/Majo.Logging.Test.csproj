@@ -5,22 +5,28 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        
+
         <IsTestProject>true</IsTestProject>
         <IsPackable>false</IsPackable>
+
+        <UsePackageReference>false</UsePackageReference>
     </PropertyGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Majo.Logging\Majo.Logging.csproj" />
+    <ItemGroup Condition="'$(UsePackageReference)' != 'true'">
+        <ProjectReference Include="..\Majo.Logging\Majo.Logging.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(UsePackageReference)' == 'true'">
+        <PackageReference Include="Majo.Logging" Version="*-*" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-      <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      </PackageReference>
-      <PackageReference Include="xunit.v3" Version="4.0.1" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3" Version="4.0.1" />
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,93 @@
+﻿name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # NuGet.config contains artifacts/nuget as a local source.
+      - name: Prepare local NuGet source
+        run: mkdir -p artifacts/nuget
+
+      - name: Restore
+        run: dotnet restore Majo.Logging.Test/Majo.Logging.Test.csproj -p:UsePackageReference=false
+
+      - name: Build
+        run: dotnet build Majo.Logging.Test/Majo.Logging.Test.csproj --configuration Release --no-restore -p:UsePackageReference=false
+
+      - name: Test
+        run: dotnet test Majo.Logging.Test/Majo.Logging.Test.csproj --configuration Release --no-build --no-restore -p:UsePackageReference=false
+
+  package:
+    name: Pack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Prepare local NuGet source
+        run: mkdir -p artifacts/nuget
+
+      - name: Restore
+        run: dotnet restore Majo.Logging/Majo.Logging.csproj
+
+      - name: Build
+        run: dotnet build Majo.Logging/Majo.Logging.csproj --configuration Release --no-restore
+
+      - name: Pack
+        run: dotnet pack Majo.Logging/Majo.Logging.csproj --configuration Release --no-build
+
+      - name: Validate package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_FILE="$(find artifacts/nuget -maxdepth 1 -type f -name 'Majo.Logging.*.nupkg' | head -n 1)"
+          SYMBOL_FILE="$(find artifacts/nuget -maxdepth 1 -type f -name 'Majo.Logging.*.snupkg' | head -n 1)"
+
+          if [ -z "$PACKAGE_FILE" ]; then
+            echo "Majo.Logging .nupkg was not generated."
+            exit 1
+          fi
+
+          if [ -z "$SYMBOL_FILE" ]; then
+            echo "Majo.Logging .snupkg was not generated."
+            exit 1
+          fi
+
+          echo "Package: $PACKAGE_FILE"
+          echo "Symbols: $SYMBOL_FILE"
+
+          unzip -l "$PACKAGE_FILE"
+
+          unzip -l "$PACKAGE_FILE" | grep -F "lib/net8.0/Majo.Logging.dll"
+          unzip -l "$PACKAGE_FILE" | grep -F "lib/net10.0/Majo.Logging.dll"
+          unzip -l "$PACKAGE_FILE" | grep -F "README.nuget.md"
+          unzip -l "$PACKAGE_FILE" | grep -F "LICENSE.txt"
+
+      - name: Upload NuGet packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: Majo.Logging-NuGet
+          path: |
+            artifacts/nuget/*.nupkg
+            artifacts/nuget/*.snupkg
