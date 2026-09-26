@@ -6,7 +6,8 @@
 
 基于 Serilog 提供简洁的静态日志 API，支持可配置的文件日志、日志级别、滚动文件、Tag 与异常输出。
 
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![NuGet](https://img.shields.io/nuget/v/Majo.Logging?style=flat-square&logo=nuget&logoColor=white)](https://www.nuget.org/packages/Majo.Logging)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 ![Serilog](https://img.shields.io/badge/Serilog-based-2C2D72?style=flat-square)
 
 [English](./README.md) · **简体中文**
@@ -32,6 +33,13 @@
 - 可配置的日志文件保留数量；
 - 异步文件写入；
 - 初始化前通过 `Debug.WriteLine(...)` 提供回退输出。
+
+## 安装
+
+`Majo.Logging` 已发布至 [NuGet.org](https://www.nuget.org/packages/Majo.Logging)：
+
+```bash
+dotnet add package Majo.Logging
 
 ## 快速开始
 

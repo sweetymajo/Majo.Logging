@@ -10,7 +10,7 @@ A small, centralized logging wrapper for .NET applications.
 dotnet add package Majo.Logging
 ```
 
-The package targets .NET 10.
+The package targets .NET8 and .NET 10.
 
 ## Quick Start
 

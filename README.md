@@ -6,7 +6,8 @@
 
 A simple static logging API built on Serilog, with configurable file logging, log levels, rolling files, tags, and exception output.
 
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![NuGet](https://img.shields.io/nuget/v/Majo.Logging?style=flat-square&logo=nuget&logoColor=white)](https://www.nuget.org/packages/Majo.Logging)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%2010.0-512BD4?style=flat-square&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 ![Serilog](https://img.shields.io/badge/Serilog-based-2C2D72?style=flat-square)
 
 **English** · [简体中文](./README.zh-CN.md)
@@ -32,6 +33,13 @@ The current implementation supports:
 - configurable file retention;
 - asynchronous file writes;
 - fallback to `Debug.WriteLine(...)` before initialization.
+
+## Installation
+
+`Majo.Logging` is available on [NuGet.org](https://www.nuget.org/packages/Majo.Logging):
+
+```bash
+dotnet add package Majo.Logging
 
 ## Quick Start
 
