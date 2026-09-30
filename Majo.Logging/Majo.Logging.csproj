@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
 
         <PackageId>Majo.Logging</PackageId>
-        <Version>0.0.1</Version>
+        <Version>0.0.2</Version>
         <PackageReleaseNotes>Initial release</PackageReleaseNotes>
         <Authors>Sweety Majo</Authors>
         <Description>A small, centralized logging wrapper for .NET applications.</Description>
@@ -36,9 +36,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Serilog" Version="4.4.0" />
-        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
-        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+        <PackageReference Include="Serilog" Version="4.4.0" PrivateAssets="compile;contentfiles;build;analyzers" />
+        <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" PrivateAssets="compile;contentfiles;build;analyzers" />
+        <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" PrivateAssets="compile;contentfiles;build;analyzers" />
     </ItemGroup>
 
 </Project>

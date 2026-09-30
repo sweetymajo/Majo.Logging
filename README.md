@@ -29,6 +29,7 @@ The current implementation supports:
 - six log levels;
 - per-message tags;
 - exception output;
+- structured log notifications through `Logger.LogWritten`;
 - daily and size-based log rolling;
 - configurable file retention;
 - asynchronous file writes;
@@ -40,6 +41,7 @@ The current implementation supports:
 
 ```bash
 dotnet add package Majo.Logging
+```
 
 ## Quick Start
 
@@ -96,6 +98,33 @@ If no tag is supplied, the default tag is:
 ```text
 Common
 ```
+
+## Observing Log Entries
+
+`Logger.LogWritten` is raised after a log entry is successfully written through the active logger.
+
+```csharp
+Logger.LogWritten += entry =>
+{
+    Console.WriteLine(
+        $"[{entry.LevelText}] [{entry.Tag}] {entry.Content}");
+};
+```
+
+Each event provides a `LogEntry` containing:
+
+| Property | Description |
+| --- | --- |
+| `Timestamp` | Time at which the log entry was created. |
+| `Level` | The `LogLevel` of the entry. |
+| `LevelText` | Display text for the log level, such as `INFO` or `ERROR`. |
+| `Tag` | The tag associated with the entry. |
+| `Content` | The original log message. |
+| `Exception` | The associated exception, if any. |
+
+`LogWritten` is only raised after a log entry is successfully written through the initialized logger. Calls made before initialization or after `Logger.Shutdown()` use the `Debug.WriteLine(...)` fallback and do not raise the event.
+
+Exceptions thrown by individual `LogWritten` handlers are isolated and do not interrupt logging or prevent other subscribers from receiving the entry.
 
 ## Configuration
 
@@ -159,20 +188,39 @@ File output is written through Serilog's asynchronous sink.
 `Majo.Logging` uses a single process-wide static logger.
 
 ```csharp
-Logger.Initialize();
+bool initialized = Logger.Initialize();
 ```
 
-Calling `Initialize(...)` again while the logger is already initialized has no effect.
+`Logger.Initialize(...)` returns:
+
+- `true` when the current call initialized the logger;
+- `false` when the logger was already initialized.
+
+Calling `Initialize(...)` while the logger is already active does not replace or reconfigure the existing logger.
+
+The return value can be used to track ownership when a component may share the global logger with the rest of the application:
 
 ```csharp
-Logger.Shutdown();
+bool ownsLogger = Logger.Initialize();
+
+try
+{
+    // Use the logger.
+}
+finally
+{
+    if (ownsLogger)
+    {
+        Logger.Shutdown();
+    }
+}
 ```
 
-Calling `Shutdown()` when the logger is not initialized also has no effect.
+`Logger.Shutdown()` releases the current logger. Calling it while the logger is not initialized has no effect.
 
 After shutdown, `Logger.Initialize(...)` can be called again with a new configuration.
 
-Applications should shut the logger down during normal application termination.
+Applications or components that own the logger should call `Logger.Shutdown()` during normal termination.
 
 ## Logging Before Initialization
 
@@ -200,7 +248,7 @@ The current implementation is built on:
 - `Serilog.Sinks.Async`
 - `Serilog.Sinks.File`
 
-These dependencies are kept behind the `Majo.Logging` API so callers normally only need to interact with `Logger`, `LogOption`, and `LogLevel`.
+These dependencies are kept behind the `Majo.Logging` API so callers normally only need to interact with `Logger`, `LogEntry`, `LogOption`, and `LogLevel`.
 
 ## Design Goals
 

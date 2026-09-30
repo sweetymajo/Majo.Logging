@@ -8,14 +8,19 @@ namespace Majo.Logging;
 public static class Logger
 {
     /// <summary>
+    /// Occurs when a log entry is written
+    /// </summary>
+    public static event Action<LogEntry>? LogWritten;
+    
+    /// <summary>
+    /// Locks access to the logger state to ensure thread safety
+    /// </summary>
+    private static readonly ReaderWriterLockSlim StateLock = new();
+    
+    /// <summary>
     /// The active Serilog logger
     /// </summary>
     private static Serilog.Core.Logger? _logger;
-
-    /// <summary>
-    /// Indicates whether the logger has been initialized
-    /// </summary>
-    private static bool _initialized;
     
     /// <summary>
     /// The default log file name
@@ -37,24 +42,38 @@ public static class Logger
     /// Initializes the logger with the specified options or the defaults
     /// </summary>
     /// <param name="option">The logging options, or <see langword="null"/> to use the defaults</param>
-    public static void Initialize(LogOption? option = null)
+    /// <returns>
+    /// <see langword="true"/> if the logger was initialized; <see langword="false"/> if it was already initialized
+    /// </returns>
+    public static bool Initialize(LogOption? option = null)
     {
-        if (_initialized)
+        StateLock.EnterWriteLock();
+        
+        try
         {
-            return;
+            if (_logger is not null)
+            {
+                return false; // Already initialized
+            }
+            
+            option ??= new LogOption();
+        
+            // Create the logging configuration
+            var configuration = new LoggerConfiguration().MinimumLevel.Verbose()
+                .Enrich.With(new LogEnricher());
+            // Apply the file logging options
+            ConfigureFile(configuration, option);
+            // Create the logger
+            _logger = configuration.CreateLogger();
+        
+            return true;
+        }
+        finally
+        {
+            StateLock.ExitWriteLock();
         }
 
-        option ??= new LogOption();
-        
-        // Create the logging configuration
-        var configuration = new LoggerConfiguration().MinimumLevel.Verbose()
-            .Enrich.With(new LogEnricher());
-        // Apply the file logging options
-        ConfigureFile(configuration, option);
-        // Create the logger
-        _logger = configuration.CreateLogger();
-        
-        _initialized = true;
+
     }
     
     /// <summary>
@@ -116,14 +135,24 @@ public static class Logger
     /// </summary>
     public static void Shutdown()
     {
-        if (!_initialized)
-        {
-            return;
-        }
+        StateLock.EnterWriteLock();
         
-        _logger?.Dispose();
-        _logger = null;
-        _initialized = false;
+        try
+        {
+            if (_logger is null)
+            {
+                return; // Not initialized
+            }
+            
+            Serilog.Core.Logger logger = _logger;
+            _logger = null;
+            
+            logger.Dispose();
+        }
+        finally
+        {
+            StateLock.ExitWriteLock();
+        }
     }
 
     /// <summary>
@@ -171,7 +200,27 @@ public static class Logger
     /// <param name="exception">The exception to include, if any</param>
     private static void Write(LogLevel level, string tag, string content, Exception? exception)
     {
-        if (!_initialized || _logger is null)
+        LogEntry entry = new(DateTime.Now, level, tag, content, exception);
+        
+        bool written = false;
+        
+        StateLock.EnterReadLock();
+        
+        try
+        {
+            if (_logger is not null)
+            {
+                _logger.ForContext("LogTag", tag).Write(LogUtils.ToSerilogLevel(level), exception, 
+                    "{Content}", content);
+                written = true;
+            }
+        }
+        finally
+        {
+            StateLock.ExitReadLock();
+        }
+        
+        if (!written)
         {
             // Use debug output when the logger has not been initialized
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] " +
@@ -185,7 +234,38 @@ public static class Logger
             
             return;
         }
+        
+        Publish(entry);
+    }
 
-        _logger.ForContext("LogTag", tag).Write(LogUtils.ToSerilogLevel(level), exception, content);
+    /// <summary>
+    /// Publishes a log entry to all subscribed handlers
+    /// </summary>
+    /// <param name="entry">The log entry to publish</param>
+    private static void Publish(LogEntry entry)
+    {
+        Action<LogEntry>? handlers = LogWritten;
+
+        if (handlers is null)
+        {
+            return;
+        }
+
+        foreach (var handler in handlers.GetInvocationList())
+        {
+            if (handler is not Action<LogEntry> action)
+            {
+                continue;
+            }
+            
+            try
+            {
+                action(entry);
+            }
+            catch (Exception e)
+            {
+                System.Diagnostics.Debug.WriteLine($"Exception in log handler: {e}");
+            }
+        }
     }
 }

@@ -29,6 +29,7 @@
 - 六种日志级别；
 - 每条日志独立指定 Tag；
 - 异常输出；
+- 通过 `Logger.LogWritten` 提供结构化日志通知；
 - 按日期和文件大小滚动日志；
 - 可配置的日志文件保留数量；
 - 异步文件写入；
@@ -40,6 +41,7 @@
 
 ```bash
 dotnet add package Majo.Logging
+```
 
 ## 快速开始
 
@@ -97,6 +99,33 @@ Logger.Error(
 Common
 ```
 
+## 监听日志事件
+
+日志通过当前 Logger 成功写入后，会触发 `Logger.LogWritten`。
+
+```csharp
+Logger.LogWritten += entry =>
+{
+    Console.WriteLine(
+        $"[{entry.LevelText}] [{entry.Tag}] {entry.Content}");
+};
+```
+
+每次事件都会提供一个 `LogEntry`：
+
+| 属性 | 说明 |
+| --- | --- |
+| `Timestamp` | 日志条目的创建时间。 |
+| `Level` | 当前日志的 `LogLevel`。 |
+| `LevelText` | 日志级别的显示文本，例如 `INFO`、`ERROR`。 |
+| `Tag` | 日志 Tag。 |
+| `Content` | 原始日志内容。 |
+| `Exception` | 关联的异常，没有时为 `null`。 |
+
+只有日志通过已经初始化的 Logger 成功写入后才会触发 `LogWritten`。初始化之前或 `Logger.Shutdown()` 之后的日志会使用 `Debug.WriteLine(...)` 回退输出，不会触发该事件。
+
+单个 `LogWritten` 订阅者抛出的异常会被隔离，不会中断日志记录，也不会阻止其他订阅者收到该日志条目。
+    
 ## 配置
 
 默认配置无法满足需求时，可以向 `Logger.Initialize(...)` 传入 `LogOption`：
@@ -159,20 +188,39 @@ Exception
 `Majo.Logging` 使用一个进程级的全局静态 Logger。
 
 ```csharp
-Logger.Initialize();
+bool initialized = Logger.Initialize();
 ```
 
-当 Logger 已经初始化时，再次调用 `Initialize(...)` 不会执行任何操作。
+`Logger.Initialize(...)` 的返回值表示：
+
+- `true`：当前调用完成了 Logger 的初始化；
+- `false`：Logger 原本已经初始化。
+
+Logger 已经处于活动状态时再次调用 `Initialize(...)`，不会替换或重新配置现有 Logger。
+
+当某个组件可能与应用的其他部分共享全局 Logger 时，可以利用返回值判断 Logger 的所有权：
 
 ```csharp
-Logger.Shutdown();
+bool ownsLogger = Logger.Initialize();
+
+try
+{
+    // 使用 Logger。
+}
+finally
+{
+    if (ownsLogger)
+    {
+        Logger.Shutdown();
+    }
+}
 ```
 
-Logger 尚未初始化时调用 `Shutdown()` 同样不会执行任何操作。
+`Logger.Shutdown()` 会释放当前 Logger。Logger 尚未初始化时调用该方法不会执行任何操作。
 
-调用 `Shutdown()` 后，可以再次调用 `Logger.Initialize(...)` 并使用新的配置重新初始化。
+关闭后可以再次调用 `Logger.Initialize(...)`，并使用新的配置重新初始化。
 
-应用在正常退出过程中应关闭 Logger。
+拥有 Logger 生命周期的应用或组件应在正常退出时调用 `Logger.Shutdown()`。
 
 ## 初始化前的日志
 
@@ -202,7 +250,7 @@ Logger.Information("Application is not initialized yet.");
 - `Serilog.Sinks.Async`
 - `Serilog.Sinks.File`
 
-这些依赖被封装在 `Majo.Logging` 内部。通常情况下，调用方只需要使用 `Logger`、`LogOption` 和 `LogLevel`。
+这些依赖被封装在 `Majo.Logging` 内部。通常情况下，调用方只需要使用 `Logger`、`LogEntry`、`LogOption` 和 `LogLevel`。
 
 ## 设计原则
 
