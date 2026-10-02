@@ -57,6 +57,8 @@ public static class Logger
             }
             
             option ??= new LogOption();
+            
+            ValidationOption(option);
         
             // Create the logging configuration
             var configuration = new LoggerConfiguration().MinimumLevel.Verbose()
@@ -265,6 +267,28 @@ public static class Logger
             catch (Exception e)
             {
                 System.Diagnostics.Debug.WriteLine($"Exception in log handler: {e}");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Validates the logging options to ensure they are within acceptable ranges
+    /// </summary>
+    /// <param name="option">logging options</param>
+    private static void ValidationOption(LogOption option)
+    {
+        if (option.WriteToFile)
+        {
+            if (option.FileSizeLimit <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(option.FileSizeLimit), 
+                    "File size limit must be greater than zero.");
+            }
+
+            if (option.FileCountLimit <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(option.FileCountLimit), 
+                    "File count limit must be greater than zero.");
             }
         }
     }

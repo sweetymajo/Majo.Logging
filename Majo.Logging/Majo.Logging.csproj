@@ -6,8 +6,8 @@
         <Nullable>enable</Nullable>
 
         <PackageId>Majo.Logging</PackageId>
-        <Version>0.0.2</Version>
-        <PackageReleaseNotes>Initial release</PackageReleaseNotes>
+        <Version>0.0.3</Version>
+        <PackageReleaseNotes>Added validation for log options</PackageReleaseNotes>
         <Authors>Sweety Majo</Authors>
         <Description>A small, centralized logging wrapper for .NET applications.</Description>
         <PackageTags>logging;serilog;logger;log</PackageTags>

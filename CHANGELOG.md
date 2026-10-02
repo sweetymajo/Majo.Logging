@@ -2,6 +2,12 @@
 
 All notable changes to `Majo.Logging` are documented in this file.
 
+## 0.0.3 - 2026-10-02
+
+### Added
+
+- Added validation for log options.
+
 ## 0.0.2 - 2026-10-01
 
 ### Added
